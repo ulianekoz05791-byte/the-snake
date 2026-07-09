@@ -1,6 +1,5 @@
 """Модуль игры «Змейка»."""
 from random import randint
-
 import pygame
 
 
