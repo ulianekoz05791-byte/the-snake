@@ -33,7 +33,7 @@ SPEED = 20
 
 def update_caption(length, speed):
     """Заголовок окна, показывая длину змейки, скорость и как выйти."""
-    caption = f"Змейка | Длина: {length} | Скорость: {speed} | Выход: ESC"
+    caption = f'Змейка | Длина: {length} | Скорость: {speed} | Выход: ESC'
     pg.display.set_caption(caption)
 
 
