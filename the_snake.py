@@ -68,7 +68,7 @@ class GameObject:
 
     def draw(self):
         """Базовый draw — просто рисует объект в self.position."""
-        self.draw_cell(self.position)
+        self.draw_sell(self.position)
 
 
 class Apple(GameObject):
