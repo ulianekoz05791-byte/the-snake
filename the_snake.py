@@ -57,7 +57,7 @@ class GameObject:
         self.position = position
         self.body_color = body_color
 
-    def draw_sell(self, position, color=None):
+    def draw_cell(self, position, color=None):
         """
         Рисует объект на переданной поверхности.
         Должен быть конкретно реализован в классах-наследниках.
@@ -68,7 +68,7 @@ class GameObject:
 
     def draw(self):
         """Базовый draw — просто рисует объект в self.position."""
-        self.draw_sell(self.position)
+        self.draw_cell(self.position)
 
 
 class Apple(GameObject):
@@ -86,9 +86,8 @@ class Apple(GameObject):
             for x in range(GRID_WIDTH)
             for y in range(GRID_HEIGHT)
         ]
-        free_positions = [
-            (pos for pos in all_positions if pos not in occupied_positions)
-        ]
+        free_positions = [pos for pos in all_positions
+                          if pos not in occupied_positions]
         if free_positions:
             self.position = free_positions[randint(0, len(free_positions) - 1)]
         else:
@@ -96,7 +95,7 @@ class Apple(GameObject):
 
     def draw(self):
         """Рисует яблоко – красный квадрат с голубой рамкой."""
-        self.draw_sell(self.position, self.body_color)
+        self.draw_cell(self.position, self.body_color)
 
 
 class Snake(GameObject):
@@ -172,11 +171,11 @@ class Snake(GameObject):
         Также очищает хвостовой квадрат последнего перемещения.
         """
         if self.last is not None:
-            self.draw_sell(self.last, BOARD_BACKGROUND_COLOR)  # затираем хвост
-            self.draw_sell(self.positions[0])  # рисуем новую голову
+            self.draw_cell(self.last, BOARD_BACKGROUND_COLOR)  # затираем хвост
+            self.draw_cell(self.positions[0])  # рисуем новую голову
         else:
             for pos in self.positions:
-                self.draw_sell(pos)
+                self.draw_cell(pos)
 
 
 def handle_keys(snake):
