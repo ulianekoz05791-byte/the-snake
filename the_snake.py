@@ -23,6 +23,12 @@ OPPOSITE_DIRECTIONS = {
     RIGHT: LEFT,
 }
 
+ALL_POSITIONS = [
+    (x * GRID_SIZE, y * GRID_SIZE)
+    for x in range(GRID_WIDTH)
+    for y in range(GRID_HEIGHT)
+]
+
 BOARD_BACKGROUND_COLOR = (220, 220, 220)
 BORDER_COLOR = (93, 216, 228)
 APPLE_COLOR = (255, 0, 0)
@@ -64,11 +70,10 @@ class GameObject:
         """
         rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
         pg.draw.rect(screen, color or self.body_color, rect)
-        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
 
     def draw(self):
         """Базовый draw — просто рисует объект в self.position."""
-        self.draw_cell(self.position)
+        pass
 
 
 class Apple(GameObject):
@@ -81,21 +86,12 @@ class Apple(GameObject):
 
     def randomize_position(self, occupied_positions):
         """Выбирает новый случайный квадрат на сетке для яблока."""
-        all_positions = [
-            (x * GRID_SIZE, y * GRID_SIZE)
-            for x in range(GRID_WIDTH)
-            for y in range(GRID_HEIGHT)
-        ]
-        free_positions = [pos for pos in all_positions
-                          if pos not in occupied_positions]
-        if free_positions:
-            self.position = free_positions[randint(0, len(free_positions) - 1)]
-        else:
-            self.position = None
+        free_positions = list(set(ALL_POSITIONS) - set(occupied_positions))
+        self.position = free_positions[randint(0, len(free_positions) - 1)]
 
     def draw(self):
         """Рисует яблоко – красный квадрат с голубой рамкой."""
-        self.draw_cell(self.position, self.body_color)
+        self.draw_cell(self.position)
 
 
 class Snake(GameObject):
@@ -110,7 +106,7 @@ class Snake(GameObject):
         Змея движется вправо в начале игры.
         """
         super().__init__(body_color=body_color)
-        self.reset()  # Последняя удалённая клетка головы для стирания
+        self.reset()
 
     def get_head_position(self):
         """
@@ -126,12 +122,13 @@ class Snake(GameObject):
         если больше сегментов чем длина — хвост убирается,
         иначе хвост остаётся (змейка растёт).
         """
-        head_x, head_y = self.get_head_position()
-        dx, dy = self.direction
         new_head = (
-            (head_x + dx * GRID_SIZE) % SCREEN_WIDTH,
-            (head_y + dy * GRID_SIZE) % SCREEN_HEIGHT,
+            (self.get_head_position()[0]
+             + self.direction[0] * GRID_SIZE) % SCREEN_WIDTH,
+            (self.get_head_position()[1]
+             + self.direction[1] * GRID_SIZE) % SCREEN_HEIGHT,
         )
+
         self.positions.insert(0, new_head)
         self.last = (
             self.positions.pop()
@@ -144,17 +141,15 @@ class Snake(GameObject):
         Применяет введённое пользователем направление, если не противоположно.
         Не даём змейке развернуться и съесть сама себя резко.
         """
-        if new_direction is not None:
-            if new_direction != OPPOSITE_DIRECTIONS.get(self.direction):
-                self.direction = new_direction
+        if new_direction != OPPOSITE_DIRECTIONS[self.direction]:
+            self.direction = new_direction
 
     def check_self_collision(self):
         """
         Проверяет, не врезалась ли змейка в собственное тело.
         Возвращает True, если голова пересекается с другими сегментами.
         """
-        head = self.get_head_position()
-        return head in self.positions[2:]
+        return self.get_head_position() in self.positions[3:]
 
     def reset(self):
         """
@@ -164,6 +159,7 @@ class Snake(GameObject):
         self.length = 1
         self.positions = [CENTER]
         self.direction = RIGHT
+        self.last = None
 
     def draw(self):
         """
@@ -171,11 +167,9 @@ class Snake(GameObject):
         Также очищает хвостовой квадрат последнего перемещения.
         """
         if self.last is not None:
-            self.draw_cell(self.last, BOARD_BACKGROUND_COLOR)  # затираем хвост
-            self.draw_cell(self.positions[0])  # рисуем новую голову
-        else:
-            for pos in self.positions:
-                self.draw_cell(pos)
+            self.draw_cell(self.last, BOARD_BACKGROUND_COLOR)
+
+        self.draw_cell(self.get_head_position())
 
 
 def handle_keys(snake):
@@ -184,14 +178,14 @@ def handle_keys(snake):
     При нажатии стрелок меняет направление движения объекта.
     """
     for event in pg.event.get():
-        if event.type == pg.QUIT:
+        if (
+            event.type == pg.QUIT
+            or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE)
+        ):
             pg.quit()
             raise SystemExit
         if event.type == pg.KEYDOWN:
-            if event.key == pg.K_ESCAPE:
-                pg.quit()
-                raise SystemExit
-            elif event.key == pg.K_UP:
+            if event.key == pg.K_UP:
                 snake.update_direction(UP)
             elif event.key == pg.K_DOWN:
                 snake.update_direction(DOWN)
@@ -199,14 +193,6 @@ def handle_keys(snake):
                 snake.update_direction(LEFT)
             elif event.key == pg.K_RIGHT:
                 snake.update_direction(RIGHT)
-
-
-def draw_grid():
-    """Рисуем клеточки на поле, по которым перемещается змейка."""
-    for x in range(0, SCREEN_WIDTH, GRID_SIZE):
-        pg.draw.line(screen, BORDER_COLOR, (x, 0), (x, SCREEN_HEIGHT))
-    for y in range(0, SCREEN_HEIGHT, GRID_SIZE):
-        pg.draw.line(screen, BORDER_COLOR, (0, y), (SCREEN_WIDTH, y))
 
 
 def main():
@@ -227,20 +213,16 @@ def main():
         snake.move()
 
         # Проверка съедания яблока
-        ate_apple = False
         if snake.get_head_position() == apple.position:
             snake.length += 1
             apple.randomize_position(snake.positions)
-            ate_apple = True  # запомнили факт поедания яблока
-
-        if not ate_apple and snake.check_self_collision():
+        elif snake.check_self_collision():
             snake.reset()
             screen.fill(BOARD_BACKGROUND_COLOR)
             apple.randomize_position(snake.positions)
 
         update_caption(snake.length, SPEED)
 
-        draw_grid()
         snake.draw()
         apple.draw()
         pg.display.update()
