@@ -99,6 +99,9 @@ class GameObject:
         rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
         pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, rect)
 
+    def draw(self):
+        """Базовый draw — просто рисует объект в self.position."""
+
 
 class Apple(GameObject):
     """Модель яблока — еды для змейки."""
